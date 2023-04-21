@@ -98,6 +98,7 @@ void serveur_appli(char *service)
 	int bien_place = 0;
 	int mal_place = 0;
 
+	printf("debug fdaodjaor\n");
 	while(mal_place != 0 || bien_place != taille_combinaison){
 		/*Attente/Lecture notre proposition*/
 		h_reads(SOCKET_LIAISON_CLIENT, buffer_read, taille_combinaison*1);
@@ -110,13 +111,16 @@ void serveur_appli(char *service)
 			if(couleur_test[buffer_read[i]] > 0){
 				mal_place ++;
 				couleur_test[buffer_read[i]]--; 
+				printf("debug for\n");
 			}
 		}
-	}
-		/*On envoie le couple (bien placé, mal placé)*/
+				/*On envoie le couple (bien placé, mal placé)*/
+		printf("debug daojt\n");
 		buffer_write[0] = mal_place-bien_place;
 		buffer_write[1] = bien_place;
 		h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 2);
+	}
+
 	}
 
 

@@ -124,8 +124,12 @@ void client_appli (char *serveur,char *service)
 	}
 	printf("Vous avez gagné en utilisant %d essais. Bien Joué\n",10-essais_restants);
 
+
+	/*Free pointeur*/
 	free(buffer_read);
 	free(buffer_write);
+
+	/*Fermeture socket*/
  }
 
  
