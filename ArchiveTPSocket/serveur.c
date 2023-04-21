@@ -69,11 +69,11 @@ void serveur_appli(char *service)
 	int SOCKET = h_socket(PF_INET, SOCK_STREAM); //Crée socket TCP locale
 	
 	struct sockaddr_in *config_socket;
-	adr_socket(SERVICE_DEFAUT, NULL, SOCK_STREAM, &config_socket);
+	adr_socket(service, NULL, SOCK_STREAM, &config_socket);
 
 	h_bind(SOCKET,config_socket);
 	
-	h_listen(SOCKET,1); //On prévoit une "communication" à la fois
+	h_listen(SOCKET,100); //On prévoit une "communication" à la fois
 
 	h_accept(SOCKET,config_socket); //Accepte la connexion client (fonction bloquante s'il n'y en a pas)
 
@@ -82,7 +82,7 @@ void serveur_appli(char *service)
 
 	/*On attend une difficulté (int)*/
 	h_reads(SOCKET, buffer_read, 4); //Lit la difficulté
-	int taille_combinaison = *buffer_read; 
+	int taille_combinaison = (int) *buffer_read; 
 	
 	int *couleur = malloc(sizeof(int)*taille_combinaison);
 	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
@@ -97,7 +97,7 @@ void serveur_appli(char *service)
 	int bien_place = 0;
 	int mal_place = 0;
 
-	while(mal_place != 0 && bien_place != taille_combinaison){
+	while(mal_place != 0 || bien_place != taille_combinaison){
 		/*Attente/Lecture notre proposition*/
 		h_reads(SOCKET, buffer_read, taille_combinaison*1);
 
