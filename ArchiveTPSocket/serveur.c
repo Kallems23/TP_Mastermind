@@ -22,8 +22,8 @@
 
 #define SERVICE_DEFAUT "1111"
 
-char *couleurs[8] = {"R","W","G","Y","O","P","F","B"};
-char *combinaison[4];
+char couleurs[8] = {'R','W','G','Y','O','P','F','B'};
+char combinaison[4];
 
 void serveur_appli (char *service);   /* programme serveur */
 
@@ -66,42 +66,56 @@ void serveur_appli(char *service)
 
 {	
 	/*Démarrage serveur*/
-	int SOCKET = h_socket(AF_UNIX, SOCK_STREAM); //Crée socket TCP
+	int SOCKET = h_socket(PF_INET, SOCK_STREAM); //Crée socket TCP locale
 	
 	struct sockaddr_in *config_socket;
-	adr_socket((unsigned short) SERVICE_DEFAUT, NULL, SOCK_STREAM, &config_socket);
+	adr_socket(SERVICE_DEFAUT, NULL, SOCK_STREAM, &config_socket);
 
 	h_bind(SOCKET,config_socket);
 	
-	while(/*pas de connexion client*/); //Ne fait rien en attendant la co
+	h_listen(SOCKET,1); //On prévoit une "communication" à la fois
 
-	int *buffer_write;
-	int *buffer_read;
+	h_accept(SOCKET,config_socket); //Accepte la connexion client (fonction bloquante s'il n'y en a pas)
+
+	char *buffer_write;
+	char *buffer_read;
 
 	/*On attend une difficulté (int)*/
-	h_reads(SOCKET, buffer_read, 4);
-	int taille_combinaison = *buffer; 
+	h_reads(SOCKET, buffer_read, 4); //Lit la difficulté
+	int taille_combinaison = *buffer_read; 
 	
+	int *couleur = malloc(sizeof(int)*taille_combinaison);
+	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
+	int ajout;
 	/*Après entier reçu -> génération tableau aleatoire*/
 	srand(clock());
-	for (int i = 0; i < taille_combinaison; i++)
-	{
-		combinaison[i] = couleurs[rand()%7];
+	for (int i = 0; i < taille_combinaison; i++) {	
+		ajout = rand()%7;
+		combinaison[i] = couleurs[ajout];
+		couleur[ajout]++;
 	}
-	
-	int proposition;
+	int bien_place = 0;
+	int mal_place = 0;
 
-	while(true/*mdrr*/){
-	/*Attente d'une proposition*/
-	h_reads(SOCKET, buffer_read, 4);
-	/*test resultat*/
+	while(mal_place != 0 && bien_place != taille_combinaison){
+		/*Attente/Lecture notre proposition*/
+		h_reads(SOCKET, buffer_read, taille_combinaison*1);
 
-	//buffer[0] = mal_place;
-	//buffer[1] = bien_place;
-	h_writes (SOCKET, buffer_write, 4);
-	if (bien_place = taille_combinaison)
-		break;
+		/*test resultat*/
+		*couleur_test = *couleur;
+		for (int i = 0; i < taille_combinaison; i++)
+			{	
+			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0;
+			if(couleur_test[buffer_read[i]] > 0){
+				mal_place ++;
+				couleur_test[buffer_read[i]]--; 
+			}
+		}
 	}
+		/*On envoie le couple (bien placé, mal placé)*/
+		buffer_write[0] = mal_place-bien_place;
+		buffer_write[1] = bien_place;
+		h_writes (SOCKET, buffer_write, 8);
 	}
 
 
