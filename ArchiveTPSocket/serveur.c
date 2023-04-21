@@ -75,14 +75,15 @@ void serveur_appli(char *service)
 	
 	h_listen(SOCKET,100); //On prévoit une "communication" à la fois
 
-	h_accept(SOCKET,config_socket); //Accepte la connexion client (fonction bloquante s'il n'y en a pas)
+	int SOCKET_LIAISON_CLIENT = h_accept(SOCKET,config_socket); //Accepte la connexion client (fonction bloquante s'il n'y en a pas)
 
-	char *buffer_write;
-	char *buffer_read;
+	char *buffer_write = malloc(100000);
+	char *buffer_read = malloc(100000);
 
 	/*On attend une difficulté (int)*/
-	h_reads(SOCKET, buffer_read, 4); //Lit la difficulté
-	int taille_combinaison = (int) *buffer_read; 
+	h_reads(SOCKET_LIAISON_CLIENT, buffer_read, 1); //Lit la difficulté
+	int taille_combinaison = (int)*buffer_read;
+	//printf("debug print\n");
 	
 	int *couleur = malloc(sizeof(int)*taille_combinaison);
 	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
@@ -99,7 +100,7 @@ void serveur_appli(char *service)
 
 	while(mal_place != 0 || bien_place != taille_combinaison){
 		/*Attente/Lecture notre proposition*/
-		h_reads(SOCKET, buffer_read, taille_combinaison*1);
+		h_reads(SOCKET_LIAISON_CLIENT, buffer_read, taille_combinaison*1);
 
 		/*test resultat*/
 		*couleur_test = *couleur;
@@ -115,7 +116,7 @@ void serveur_appli(char *service)
 		/*On envoie le couple (bien placé, mal placé)*/
 		buffer_write[0] = mal_place-bien_place;
 		buffer_write[1] = bien_place;
-		h_writes (SOCKET, buffer_write, 8);
+		h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 2);
 	}
 
 
