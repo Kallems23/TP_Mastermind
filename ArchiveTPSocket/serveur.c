@@ -88,6 +88,7 @@ void serveur_appli(char *service)
 	int *couleur = malloc(sizeof(int)*taille_combinaison);
 	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
 	int ajout;
+
 	/*Après entier reçu -> génération tableau aleatoire*/
 	srand(clock());
 	for (int i = 0; i < taille_combinaison; i++) {	
@@ -95,32 +96,54 @@ void serveur_appli(char *service)
 		combinaison[i] = couleurs[ajout];
 		couleur[ajout]++;
 	}
+
 	int bien_place = 0;
 	int mal_place = 0;
-
-	printf("debug fdaodjaor\n");
 	while(mal_place != 0 || bien_place != taille_combinaison){
-		/*Attente/Lecture notre proposition*/
+		int bien_place = 0;
+		int mal_place = 0;
+		
+		/*Attente/lecture proposition*/
 		h_reads(SOCKET_LIAISON_CLIENT, buffer_read, taille_combinaison*1);
 
 		/*test resultat*/
 		*couleur_test = *couleur;
-		for (int i = 0; i < taille_combinaison; i++)
-			{	
+		for (int i = 0; i < taille_combinaison; i++){
+
+			/*Si on reçoit le caractère de fin de partie*/
+			if(buffer_read[0] == 'e') {
+				for (int j=0 ; j<taille_combinaison ; j++) {
+					buffer_write[j] = combinaison[j];
+					printf("%c", combinaison[j]);
+				}
+				h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 4);
+			}
+
 			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0;
-			if(couleur_test[buffer_read[i]] > 0){
+			if(couleur_test[(int) buffer_read[i]] > 0){
 				mal_place ++;
 				couleur_test[buffer_read[i]]--; 
-				printf("debug for\n");
+				printf("Debug test couleur\n");
 			}
 		}
-				/*On envoie le couple (bien placé, mal placé)*/
-		printf("debug daojt\n");
+		
+		/*On envoie le couple (bien placé, mal placé)*/
+		printf("Debug avant couple couleur\n");
 		buffer_write[0] = mal_place-bien_place;
 		buffer_write[1] = bien_place;
 		h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 2);
 	}
 
+
+	/*Libération pointeur*/
+	free(buffer_read);
+	free(buffer_write);
+	free(couleur);
+	free(couleur_test);
+
+	/*Fermeture socket*/
+	h_close(SOCKET);
+	h_close(SOCKET_LIAISON_CLIENT);
 	}
 
 
