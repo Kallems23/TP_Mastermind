@@ -1,12 +1,12 @@
 /******************************************************************************/
-/*			Application: Mastermind									 	      */
+/*							Application: Mastermind					 	      */
 /******************************************************************************/
-/*									      */
-/*			 programme  CLIENT				      */
-/*									      */
+/*									      									  */
+/*						   	   Programme  CLIENT							  */
+/*									      									  */
 /******************************************************************************/
 /*									 									      */
-/*		Auteurs : CHERBLANC Noah - ROSANO Romain - ROUBIA Akram				  */
+/*			Auteurs : CHERBLANC Noah - ROSANO Romain - ROUBIA Akram			  */
 /*									   									      */
 /******************************************************************************/	
 
@@ -70,16 +70,25 @@ void client_appli (char *serveur,char *service)
 /* procedure correspondant au traitement du client de votre application */
 
 {
-  /*Démarrage client*/
+	/*********************************************************************************/
+	/*************************Démarrage connexion client******************************/
+	/*********************************************************************************/
 	int SOCKET = h_socket(PF_INET, SOCK_STREAM); //Crée socket TCP locale
 	
 	struct sockaddr_in *config_socket;
-	adr_socket(service, serveur, SOCK_STREAM, &config_socket);
+	adr_socket(service, serveur, SOCK_STREAM, &config_socket); //Initialise une adresse de socket (ici TCP) pour communiquer avec le serveur
 
 	//h_bind(SOCKET, config_socket); // Inutile car local
 
-	h_connect(SOCKET, config_socket);
-	printf("Bienvenue au mastermind : Choisissez votre difficulté\n");
+	h_connect(SOCKET, config_socket); //Réalisation de la connexion avec le serveur
+	/*********************************************************************************/
+	/*********************************************************************************/
+
+	/*********************************************************************************/
+	/****************************Démarrage communication******************************/
+	/*********************************************************************************/
+	
+	/*Initialisation buffers, essais et l'entier pour la future difficulte donnée*/
 	char *buffer_read = malloc(100*INTSIZE);
  	char *buffer_write = malloc(100*INTSIZE);
 	int int_write;
@@ -87,51 +96,50 @@ void client_appli (char *serveur,char *service)
 	
 	buffer_read[0]=(char)1;
 	buffer_read[1]=(char)0;
-	//On donne la difficulté (le nombre de couleurs à deviner) dans le int difficulte
+
+	/*On donne la difficulté (le nombre de couleurs à deviner) dans le int difficulte*/
+	printf("Bienvenue au Mastermind !\nChoisissez votre difficulté :\n");
 	scanf("%d", &int_write);
 	int difficulte = int_write;
 	buffer_write[0] = (char)int_write;
-	
-	//On envoie la difficulté au serveur pour qu'il génère le code aléatoire
-	h_writes(SOCKET, buffer_write, CHARSIZE);
-	printf("Vous pouvez écrire le code secret :\n");
+	h_writes(SOCKET, buffer_write, CHARSIZE); //Et on l'envoie au serveur pour qu'il génère le code aléatoire
+
 	while (true) {
-		scanf("%s", (buffer_write)); //on récupère la combianaison tentée
-		printf("Le buffer_write contient ceci : \n");
-		for (int j = 0; j<CHARSIZE*difficulte; j++) {
-			printf("%c\n", *(buffer_write+j));
-		}
+		/*On traite la tentative client*/
+		printf("Vous pouvez écrire le code secret :\n");
+		scanf("%s", (buffer_write)); //On récupère la combinaison tentée (sans compter les retours à la ligne, d'où le "%s")
 		h_writes(SOCKET, buffer_write, CHARSIZE*difficulte); //On envoie la tentative au serveur
 		h_reads(SOCKET,buffer_read,CHARSIZE*2); //On attend le couple (Couleurs mal placées, Couleurs bien placées)
 
+		/*Si le client gagne, alors il 4 couleurs bien placées et 0 mal placées et il termine la partie*/
 		if ((int) buffer_read[0] == 0 && (int) buffer_read[1] == difficulte) {
-			printf("Vous avez gagné en utilisant %d essais. Bien Joué !\n",11-essais_restants);
+			printf("Bravo !!!\nVous avez gagné en utilisant %d essais, bien joué !\n",11-essais_restants);
 
-			/*Free pointeur*/
+			/*On libère les pointeurs*/
 			free(buffer_read);
 			free(buffer_write);
 
-			/*Fermeture socket*/
+			/*Et on ferme la socket de communication avec le serveur*/
 			h_close(SOCKET);
 			return;
 		}
 
+		/*Si le client n'a pas toutes les couleurs de bien placées, il perd un essai en obtenant les informations de sa tentative*/
 		if ((int)buffer_read[1]!= difficulte) {
 			printf("Mauvaise réponse, vous avez %d bonnes positions et %d couleurs mal placées\n",(int)buffer_read[1],(int)buffer_read[0]);
 			essais_restants--;
 			printf("Il vous reste %d essais\n", essais_restants);
 		}
 
+		/*Si le client n'a plus d'essai, la partie se termine et la combinaison attendue est renvoyée*/
 		if(essais_restants == 0) {
 			printf("Dommage, vous n'avez plus d'essais\n");
-			for (int j=0 ; j<difficulte ; j++) { //On lit tjrs difficulte char dans le client
-				buffer_write[j] = 'e';
+			for (int j=0 ; j<difficulte ; j++) { //On écrit un caractère non-reproduisable par le client (NULL) au serveur pour le notifier que la partie est terminée
+				buffer_write[j] = '\0';
 			}
 			h_writes(SOCKET,buffer_write,difficulte*CHARSIZE);
-					
-			//On envoie au serveur le caractère "e" pour "error", ce qui signifie qu'on a atteint la limite d'essais
 
-			//On attend la solution au Mastermind
+			/*On récupère et affiche la solution attendue du Mastermind*/
 			h_reads(SOCKET,buffer_read, difficulte*CHARSIZE);
 			printf("Le code était : \n");
 			for (int k=0; k<difficulte; k++) {
@@ -140,23 +148,17 @@ void client_appli (char *serveur,char *service)
 				if (k==difficulte-1) printf("\n");
 			}
 
-			/*Free pointeur*/
+			/*On libère les pointeurs*/
 			free(buffer_read);
 			free(buffer_write);
 
-			/*Fermeture socket*/
+			/*Et on ferme la socket de communication avec le serveur*/
 			h_close(SOCKET);
-
 			return;
 		}
-
-		printf("\nVous pouvez écrire le code secret :\n");
 	}
+	/*********************************************************************************/
+	/*********************************************************************************/
  }
-
- 
- 
-
-
 
 /*****************************************************************************/
