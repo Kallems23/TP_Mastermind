@@ -95,13 +95,26 @@ void client_appli (char *serveur,char *service)
 	//On envoie la difficulté au serveur pour qu'il génère le code aléatoire
 	h_writes(SOCKET, buffer_write, CHARSIZE);
 	printf("Vous pouvez écrire le code secret :\n");
-	while (buffer_read[0]!=0 || buffer_read[1]!=difficulte) {
-
-		for (int i = 0; i < difficulte ; i++) { //on récupère la combianaison tentée
-				scanf("%c", (buffer_write+i));
-			}
-		h_writes(SOCKET, buffer_write, CHARSIZE*difficulte ); //On envoie la tentative au serveur
+	while (true) {
+		scanf("%s", (buffer_write)); //on récupère la combianaison tentée
+		printf("Le buffer_write contient ceci : \n");
+		for (int j = 0; j<CHARSIZE*difficulte; j++) {
+			printf("%c\n", *(buffer_write+j));
+		}
+		h_writes(SOCKET, buffer_write, CHARSIZE*difficulte); //On envoie la tentative au serveur
 		h_reads(SOCKET,buffer_read,CHARSIZE*2); //On attend le couple (Couleurs mal placées, Couleurs bien placées)
+
+		if ((int) buffer_read[0] == 0 && (int) buffer_read[1] == difficulte) {
+			printf("Vous avez gagné en utilisant %d essais. Bien Joué !\n",11-essais_restants);
+
+			/*Free pointeur*/
+			free(buffer_read);
+			free(buffer_write);
+
+			/*Fermeture socket*/
+			h_close(SOCKET);
+			return;
+		}
 
 		if ((int)buffer_read[1]!= difficulte) {
 			printf("Mauvaise réponse, vous avez %d bonnes positions et %d couleurs mal placées\n",(int)buffer_read[1],(int)buffer_read[0]);
@@ -111,14 +124,12 @@ void client_appli (char *serveur,char *service)
 
 		if(essais_restants == 0) {
 			printf("Dommage, vous n'avez plus d'essais\n");
-			for (int j=0 ; j<difficulte ; j++) { //On lit tjrs 4 char dans le client
+			for (int j=0 ; j<difficulte ; j++) { //On lit tjrs difficulte char dans le client
 				buffer_write[j] = 'e';
 			}
 			h_writes(SOCKET,buffer_write,difficulte*CHARSIZE);
 					
 			//On envoie au serveur le caractère "e" pour "error", ce qui signifie qu'on a atteint la limite d'essais
-			/*buffer_write[0] = 'e';
-			h_writes(SOCKET,buffer_write,CHARSIZE);*/
 
 			//On attend la solution au Mastermind
 			h_reads(SOCKET,buffer_read, difficulte*CHARSIZE);
@@ -141,15 +152,6 @@ void client_appli (char *serveur,char *service)
 
 		printf("\nVous pouvez écrire le code secret :\n");
 	}
-
-	printf("Vous avez gagné en utilisant %d essais. Bien Joué\n",10-essais_restants);
-
-	/*Free pointeur*/
-	free(buffer_read);
-	free(buffer_write);
-
-	/*Fermeture socket*/
-	h_close(SOCKET);
  }
 
  

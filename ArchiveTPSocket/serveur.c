@@ -23,7 +23,7 @@
 #define SERVICE_DEFAUT "1111"
 
 char couleurs[8] = {'R','W','G','Y','O','P','F','B'};
-char combinaison[4];
+
 
 void serveur_appli (char *service);   /* programme serveur */
 
@@ -58,7 +58,14 @@ int main(int argc,char *argv[])
 	serveur_appli(service);
 }
 
-
+int trouve_couleur(char c){
+	for (int i = 0; i < 8; i++){
+		if(couleurs[i] == c){
+			return i;
+		}
+	}
+	return -1;
+}
 /******************************************************************************/	
 void serveur_appli(char *service)
 
@@ -82,19 +89,30 @@ void serveur_appli(char *service)
 
 	/*On attend une difficulté (int)*/
 	h_reads(SOCKET_LIAISON_CLIENT, buffer_read, 1); //Lit la difficulté
+	//h_reads(SOCKET_LIAISON_CLIENT, buffer_read, 1); 
 	int taille_combinaison = (int)*buffer_read;
 	//printf("debug print\n");
 	
-	int *couleur = malloc(sizeof(int)*taille_combinaison);
+	int *couleur = malloc(sizeof(int)*8);
+	for (int i = 0; i < 8; i++) {	
+		couleur[i]=0;
+	}
 	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
 	int ajout;
 
+	char combinaison[taille_combinaison];
 	/*Après entier reçu -> génération tableau aleatoire*/
+
 	srand(clock());
 	for (int i = 0; i < taille_combinaison; i++) {	
 		ajout = rand()%7;
 		combinaison[i] = couleurs[ajout];
 		couleur[ajout]++;
+	}
+
+	 printf("Solution :\n");
+	 for (int i = 0; i < taille_combinaison; i++) {	
+		printf("%c",combinaison[i]);
 	}
 
 	int bien_place = 0;
@@ -107,7 +125,9 @@ void serveur_appli(char *service)
 		h_reads(SOCKET_LIAISON_CLIENT, buffer_read, taille_combinaison*1);
 
 		/*test resultat*/
-		*couleur_test = *couleur;
+		for (int i = 0; i < 8; i++){
+			couleur_test[i] = couleur[i];
+		}
 		for (int i = 0; i < taille_combinaison; i++){
 
 			/*Si on reçoit le caractère de fin de partie*/
@@ -116,21 +136,24 @@ void serveur_appli(char *service)
 					buffer_write[j] = combinaison[j];
 					printf("%c", combinaison[j]);
 				}
-				h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 4);
+				h_writes (SOCKET_LIAISON_CLIENT, buffer_write, taille_combinaison);
 			}
 
 			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0;
+			printf("DEBUG bien place boucle %d\n",bien_place);
 			if(couleur_test[trouve_couleur(buffer_read[i])] > 0){
 				mal_place ++;
-				couleur_test[buffer_read[i]]--; 
+				couleur_test[trouve_couleur(buffer_read[i])]--; 
+				printf("Debug val couleur %d\n",couleur_test[trouve_couleur(buffer_read[i])]);
 				printf("Debug test couleur\n");
 			}
 		}
-		
 		/*On envoie le couple (bien placé, mal placé)*/
 		printf("Debug avant couple couleur\n");
-		buffer_write[0] = mal_place-bien_place;
-		buffer_write[1] = bien_place;
+		printf("DEBUG mal place %d\n",mal_place);
+		printf("DEBUG bien place %d\n",bien_place);
+		buffer_write[0] = (char)(mal_place-bien_place);
+		buffer_write[1] = (char)bien_place;
 		h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 2);
 	}
 
@@ -147,13 +170,6 @@ void serveur_appli(char *service)
 	}
 
 
-int trouve_couleur(char c){
-	for (int i = 0; i < 8; i++){
-		if(couleurs[i] == c){
-			return i;
-		}
-	}
-	return -1;
-}
+
 /******************************************************************************/	
 
