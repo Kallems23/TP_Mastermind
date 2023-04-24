@@ -120,7 +120,7 @@ void serveur_appli(char *service)
 			}
 
 			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0;
-			if(couleur_test[(int) buffer_read[i]] > 0){
+			if(couleur_test[trouve_couleur(buffer_read[i])] > 0){
 				mal_place ++;
 				couleur_test[buffer_read[i]]--; 
 				printf("Debug test couleur\n");
@@ -147,5 +147,13 @@ void serveur_appli(char *service)
 	}
 
 
+int trouve_couleur(char c){
+	for (int i = 0; i < 8; i++){
+		if(couleurs[i] == c){
+			return i;
+		}
+	}
+	return -1;
+}
 /******************************************************************************/	
 
