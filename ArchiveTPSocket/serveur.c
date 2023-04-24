@@ -84,8 +84,9 @@ void serveur_appli(char *service)
 
 	int SOCKET_LIAISON_CLIENT = h_accept(SOCKET,config_socket); //Accepte la connexion client (fonction bloquante s'il n'y en a pas)
 
-	char *buffer_write = malloc(100000);
-	char *buffer_read = malloc(100000);
+	//initialisation des buffers
+	char *buffer_write = malloc(1000);
+	char *buffer_read = malloc(1000);
 
 	/*On attend une difficulté (int)*/
 	h_reads(SOCKET_LIAISON_CLIENT, buffer_read, 1); //Lit la difficulté
@@ -93,40 +94,35 @@ void serveur_appli(char *service)
 	int taille_combinaison = (int)*buffer_read;
 	//printf("debug print\n");
 	
-	int *couleur = malloc(sizeof(int)*8);
+	//On initialise les tableaux pour les tests
+	int *occurence_couleurs = malloc(sizeof(int)*8);
 	for (int i = 0; i < 8; i++) {	
-		couleur[i]=0;
+		occurence_couleurs[i]=0;
 	}
-	int *couleur_test = malloc(sizeof(int)*taille_combinaison);
+	int *occurence_couleurs_boucle = malloc(sizeof(int)*taille_combinaison);
 	int ajout;
-
 	char combinaison[taille_combinaison];
-	/*Après entier reçu -> génération tableau aleatoire*/
 
+	/*Après entier reçu -> génération tableau aleatoire*/
 	srand(clock());
 	for (int i = 0; i < taille_combinaison; i++) {	
 		ajout = rand()%7;
 		combinaison[i] = couleurs[ajout];
-		couleur[ajout]++;
-	}
-
-	 printf("Solution :\n");
-	 for (int i = 0; i < taille_combinaison; i++) {	
-		printf("%c",combinaison[i]);
+		occurence_couleurs[ajout]++;
 	}
 
 	int bien_place = 0;
-	int mal_place = 0;
-	while(mal_place != 0 || bien_place != taille_combinaison){
+	int bonne_couleur = 0;
+	while(bonne_couleur != 0 || bien_place != taille_combinaison){
 		int bien_place = 0;
-		int mal_place = 0;
+		int bonne_couleur = 0;
 		
 		/*Attente/lecture proposition*/
 		h_reads(SOCKET_LIAISON_CLIENT, buffer_read, taille_combinaison*1);
 
 		/*test resultat*/
 		for (int i = 0; i < 8; i++){
-			couleur_test[i] = couleur[i];
+			occurence_couleurs_boucle[i] = occurence_couleurs[i];
 		}
 		for (int i = 0; i < taille_combinaison; i++){
 
@@ -139,21 +135,17 @@ void serveur_appli(char *service)
 				h_writes (SOCKET_LIAISON_CLIENT, buffer_write, taille_combinaison);
 			}
 
-			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0;
-			printf("DEBUG bien place boucle %d\n",bien_place);
-			if(couleur_test[trouve_couleur(buffer_read[i])] > 0){
-				mal_place ++;
-				couleur_test[trouve_couleur(buffer_read[i])]--; 
-				printf("Debug val couleur %d\n",couleur_test[trouve_couleur(buffer_read[i])]);
-				printf("Debug test couleur\n");
+		//on calcule le nombre de bien placé et de mal placé
+			bien_place += (buffer_read[i] == combinaison[i]) ? 1 : 0; 
+			if(occurence_couleurs_boucle[trouve_couleur(buffer_read[i])] > 0){
+				bonne_couleur ++;
+				occurence_couleurs_boucle[trouve_couleur(buffer_read[i])]--; 
 			}
 		}
+
 		/*On envoie le couple (bien placé, mal placé)*/
-		printf("Debug avant couple couleur\n");
-		printf("DEBUG mal place %d\n",mal_place);
-		printf("DEBUG bien place %d\n",bien_place);
-		buffer_write[0] = (char)(mal_place-bien_place);
-		buffer_write[1] = (char)bien_place;
+		buffer_write[0] = (char)(bonne_couleur-bien_place); //mal placé
+		buffer_write[1] = (char)bien_place; //bien placé
 		h_writes (SOCKET_LIAISON_CLIENT, buffer_write, 2);
 	}
 
@@ -161,8 +153,8 @@ void serveur_appli(char *service)
 	/*Libération pointeur*/
 	free(buffer_read);
 	free(buffer_write);
-	free(couleur);
-	free(couleur_test);
+	free(occurence_couleurs);
+	free(occurence_couleurs_boucle);
 
 	/*Fermeture socket*/
 	h_close(SOCKET);
